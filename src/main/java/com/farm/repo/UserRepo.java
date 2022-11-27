@@ -14,6 +14,8 @@ public interface UserRepo extends JpaRepository<User, Long> {
 	@Query(nativeQuery = true, value = "select *from user_tbl where username = ?1")
 	User findUserName(String username);
 	
-	@Query(nativeQuery = true, value = "select *from user_tbl where active <> false")
+	@Query(nativeQuery = true, value = "select *from user_tbl")
 	List<User> findAllUser();
+	
+	User findByUsername(String username);
 }

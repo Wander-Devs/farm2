@@ -7,11 +7,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.farm.model.Crop;
@@ -21,7 +25,7 @@ import com.farm.repo.UserRepo;
 
 @RestController
 @RequestMapping("api/auth/")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "*" )
 public class UserController {
 	
 	
@@ -34,18 +38,49 @@ public class UserController {
 		return userRepo.findAllUser();
 	}
 	
-	@PostMapping(value = "register")
-	public User register(@RequestBody User user) {
-		BCryptPasswordEncoder bcrypt = new BCryptPasswordEncoder();
+	@PatchMapping(value = "update/{user_id}")
+	public ResponseEntity<ResponseModel> update(@RequestBody User user) {
 		
-		String hashedpassword = bcrypt.encode(user.getPassword());
-		user.setPassword(hashedpassword);
-		User result = userRepo.save(user);
+		Optional<User> userData = userRepo.findById(user.getUser_id());
+		if(userData.isEmpty()) {
+			return ResponseEntity.ok().body( new ResponseModel(0, "User does not exist", null));
+		}
 		
-		result.setPassword("");
+		userRepo.save(user);
+		return ResponseEntity.ok().body( new ResponseModel(1, "User has been updated", null));
 		
-		return result;
 	}
+	
+	@DeleteMapping(value = "delete/{user_id}")
+	public ResponseEntity<ResponseModel> delete(@PathVariable(value = "user_id") Long user_id) {
+		
+		Optional<User> userData = userRepo.findById(user_id);
+		if(userData.isEmpty()) {
+			return ResponseEntity.ok().body( new ResponseModel(0, "User does not exist", null));
+		}
+		userRepo.deleteById(userData.get().getUser_id());
+		return ResponseEntity.ok().body( new ResponseModel(1, "User has been deleted", null));
+	}
+	
+	@PostMapping(value = "register")
+	public ResponseEntity<ResponseModel> register(@RequestBody User user) {
+		Optional<User> findUser = Optional.ofNullable(userRepo.findByUsername(user.getUsername()));
+		if(findUser.isPresent()) {
+			return ResponseEntity.ok().body( new ResponseModel(0, "User already exist", null));
+		}else {
+			BCryptPasswordEncoder bcrypt = new BCryptPasswordEncoder();
+			
+			String hashedpassword = bcrypt.encode(user.getPassword());
+			user.setPassword(hashedpassword);
+			userRepo.save(user);
+			//User result = userRepo.save(user);	
+			//result.setPassword("");
+			
+			return ResponseEntity.ok().body( new ResponseModel(1, "success", null));
+		}
+	}
+	
+	
 	
 	@PostMapping(value = "login")
 	public ResponseEntity<ResponseModel> login(@RequestBody User user) {
